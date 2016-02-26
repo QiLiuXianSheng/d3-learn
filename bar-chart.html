@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>上海科技大学bar-char d3 实现</title>
+    <script type="text/javascript" src="js/d3.min.js"></script>
+    <style type="text/css">
+        .axis {
+            font: 14px sans-serif;
+        }
+        .axis path{
+            fill: none;
+            stroke: teal;
+            stroke-width: 1px;
+            shape-rendering: crispEdges;
+        }
+        .axis line {
+            fill: none;
+            stroke: #000;
+            stroke-width: 1px;
+            shape-rendering:crispEdges;
+        }
+    </style>
+</head>
+<body>
+    <pre>
+        使用d3显示
+        todo : 再气球与横轴坐标之间画一条曲线。然后就beautiful了。
+    </pre>
+    <div class="svg">
+    </div>
+
+    <script type="text/javascript">
+        //还用json里面的数据吧
+        d3.json("json-data/student.json",function(error,jsondata){
+            if (error){
+                return console.log(error);
+            }
+            var margin = {top:20,right:20,bottom:70,left:40};
+            var w = 1000 - margin.left - margin.right;
+            var h = 618 - margin.top - margin.bottom;
+            var svg = d3.select(".svg")
+                    .append("svg")
+                    .attr({
+                        width:w + margin.left + margin.right,
+                        height:h + margin.top + margin.bottom,
+                    })
+                    .append("g")
+                    .attr({
+                        transform:"translate("+margin.left + "," + margin.top +")",
+                    });
+
+            var keys = [];
+            for (var i = 0 ; i < jsondata.length ; i++){
+                keys.push(jsondata[i].name);
+            }
+
+            var xScale = d3.scale.ordinal()
+                    .domain(keys)
+                    .rangeRoundBands([0,w],0.2);
+            var yScale = d3.scale.linear()
+                    .domain([ 0, d3.max(jsondata,function(d){
+                        return parseInt(d.num);
+                    }) + 4])
+                    .range([h,0]);
+
+            var rScale = d3.scale.linear()
+                    .domain([d3.min(jsondata,function(d){
+                        return parseInt(d.num);
+                    }) ,
+                        d3.max(jsondata,function(d){
+                        return parseInt(d.num);
+                    })])
+                    .range([10,100]);
+            pt(yScale.domain())
+            var xAis = d3.svg.axis()
+                    .scale(xScale)
+                    .orient("bottom")
+                    .ticks(keys.length);
+            var yAis = d3.svg.axis()
+                    .scale(yScale)
+                    .orient("left")
+                    .ticks(10);
+            var colors = d3.scale.category20b();
+            svg.append("g")
+                    .attr({
+                        class:"x axis",
+                        transform:"translate(0," + h + ")",
+                    })
+                    .call(xAis)
+                    .selectAll("text")
+                    .attr({
+                        "dx":"-1em",
+                        "dy":"2em",
+                        "transform":"rotate(-30)",
+                        "fill":function(d,i){return colors(i)},
+                    });
+            svg.append("g")
+                    .attr({
+                        class:"y axis",
+                    })
+                    .call(yAis)
+                    .append("text")
+                    .attr({
+                        dx:"-4em",
+                        dy:"1.2em",
+                        "transform":"rotate(-90)",
+                    })
+                    .text("人数 (个)");
+
+            svg.append("g").selectAll("circle")
+                    .data(jsondata)
+                    .enter()
+                    .append("circle")
+                    .attr({
+                        cx: function (d) {
+                            return xScale(d.name) + xScale.rangeBand()/2;
+                        },
+                        cy:function(d){
+                            return yScale(d.num);
+                        },
+                        r:function(d){return rScale(d.num)},
+                        fill:function(d,i){return colors(i)},
+                    });
+            svg.selectAll("num")
+                    .data(jsondata)
+                    .enter()
+                    .append("text")
+                    .text(function(d){
+                        return d.num;
+                    })
+                    .attr({
+                        x: function (d) {
+                            return xScale(d.name) + xScale.rangeBand()/2;
+                        },
+                        y:function(d){
+                            return yScale(d.num) + 4;
+                        },
+                        fill:"white",
+                        "text-anchor":"middle",
+                        "font-size":"14px",
+                    });
+        });
+
+        function pt(s){
+            console.log(s);
+        }
+    </script>
+</body>
+</html>

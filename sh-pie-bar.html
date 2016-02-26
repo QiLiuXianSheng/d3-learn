@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>上海科技大学在校研究生分布图d3实现 pipe - bar</title>
+    <script type="text/javascript" src="js/d3.min.js"></script>
+</head>
+<body>
+    <p>
+        <pre>
+                未实现线指向对应的学校。
+                左2/3画图    右1/3画图形与代表的学校  [相应的位置控制]使用scale 确保当数据增多时程序依然哇哇叫
+                不足的地方有
+                    1. 对色盲患者来说是噩梦。
+                    2. 我把数据都封装成一个数组
+                        jsondata = [ {"name":"xx","num":x } , {"name":"yy","num":y } , ..]
+                        为了做出圆环，我参考网上的一份代码 先把数据给了svg ( data[ jsondata ] ) .当然我真的不理解干了什么,
+                        只是仿着写，发现居然可以这么用。。。
+                    3. 自己添加了一个郑州大学的学生，希望自己能去这个学校。
+    </pre>
+    </p>
+    <div class="svg">
+
+    </div>
+    <script type="text/javascript">
+        d3.json("json-data/student.json",function(error,jsondata){
+            if (error) {
+                console.log(error);
+            } else {
+                function sortBy(a,b){
+                    return b.num - a.num;
+                }
+                jsondata.sort(sortBy);
+
+                var w = 900;
+                var h = 900;
+                var padding = 150;
+                var innerRad = w / 4.5;
+                var outerRad = w / 2 - padding;
+                var colors = d3.scale.category20();
+                //扩展svg
+                var svg = d3.select(".svg")
+                        .append( "svg" )
+                        .data( [jsondata] ) //在这里把数据给了svg
+                        .attr({
+                            width:w,
+                            height:h,
+                        })
+                        .append("svg:g")
+                        .attr({
+                           "transform" : "translate(" + 0 + "," + padding + ")",
+                        });
+
+                var arc = d3.svg.arc()
+                        .innerRadius(innerRad)
+                        .outerRadius(outerRad);
+
+                var pie = d3.layout.pie()
+                        .value(function(d){
+                            return d.num;
+                        })
+                var arcs = svg.selectAll("g.arc")
+                        .data(pie)//然后在这居然可以使用pie函数直接处理每个数据
+                        .enter()
+                        .append("g")
+                        .attr({
+                            "class":"arc",
+                            "transform":"translate(" + outerRad + "," + outerRad + ")",
+                        });
+
+                arcs.append("path")
+                        .attr({
+                           "fill":function(d,i){return colors(i)},
+                            "d" : function(d){return arc(d)},
+                        });
+                //画数字
+                arcs.append("text")
+                        .attr("transform",function( d ){
+                            return "translate(" + arc.centroid(d) +")";
+                        })
+                        .attr("text-anchor","middle")
+                        .text(function(d,i){
+                            return jsondata[i].num;
+                        })
+                        .attr({
+                            "font-family":"sans-serif",
+                            "font-size":"14px",
+                            "fill":"white",
+                        });
+                //画出图形代表的学校
+                var pd = 150;
+                var xPosition = [];
+                var yScale = d3.scale.ordinal()
+                        .domain( d3.range(jsondata.length) )
+                        .rangeRoundBands([pd , h - pd] , 0.1);
+                arcs.append("rect")
+                        .attr({
+                            "fill" : function(d,i){return colors(i);},
+                            "x" : 340,
+                            "y" : function(d,i){return yScale(i);},
+                            "width":yScale.rangeBand(),
+                            "height":yScale.rangeBand(),
+                            "transform":"translate(0,"+(-450) +")",
+                        });
+                arcs.append("text")
+                        .attr({
+                            "fill" : function(d,i){return colors(i);},
+                            "x" : 400,
+                            "y" : function(d,i){return yScale(i) + yScale.rangeBand()/2+3;},
+                            "height":yScale.rangeBand(),
+                            "transform":"translate(0,"+(-450) +")",
+                            "font-size":"14px",
+                        })
+                        .text(function(d,i){
+                            return jsondata[i].name + " - " + jsondata[i].num;
+                        });
+
+
+                d3.json("json-data/china.json",function(error,dd){
+                    //画中国地图
+                    if (error){
+                        //新思路
+                        return console.log(error);
+                    }
+                    var projectionUsed = d3.geo.mercator()
+                            .center([107,40])
+                            .scale(380)
+                            .translate([w/2,h/2]);
+                    var path = d3.geo.path().projection(projectionUsed);
+                    var colors = d3.scale.category20c();
+                    svg.append("g")
+                            .attr({
+                                "transform":"translate(" + -140 + "," + -150 + ")",
+                            })
+                            .selectAll("path")
+                            .data(dd.features)
+                            .enter()
+                            .append("path")
+                            .attr({
+                                "d":path,
+                                "stroke":"#000",
+                                "stroke-width":"1",
+                                "fill":function(d,i){return colors(i)},
+                            });
+                })
+            }
+        });
+    </script>
+</body>
+</html>
